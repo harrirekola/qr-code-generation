@@ -1,9 +1,0 @@
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/kuvatesti.dir
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/edit_cache.dir
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/rebuild_cache.dir
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/list_install_components.dir
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/install.dir
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/install/local.dir
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/install/strip.dir
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/kuvatesti_autogen_timestamp_deps.dir
-/Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/CMakeFiles/kuvatesti_autogen.dir

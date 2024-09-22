@@ -1,2 +1,0 @@
-set(__QT_DEPLOY_TARGET_kuvatesti_FILE /Users/harrirekola/Developer/kuvatesti/build/Desktop_arm_darwin_generic_mach_o_64bit-Debug/kuvatesti.app/Contents/MacOS/kuvatesti)
-set(__QT_DEPLOY_TARGET_kuvatesti_TYPE EXECUTABLE)
