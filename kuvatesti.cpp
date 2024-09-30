@@ -20,6 +20,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QList>
+#include <QImage>
+#include <QPainter>
 
 using std::uint8_t;
 using qrcodegen::QrCode;
@@ -56,21 +59,16 @@ static QString toSvgString(const QrCode &qr, int border) {
 kuvatesti::kuvatesti(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::kuvatesti)
-    , interval(double(1000) / double(120))
-    // 60 FPS = +0.5
+    , interval(double(1000) / double(60))
 {
     ui->setupUi(this);
 
     // Create a QLabel to display the QR code
     svgLabel = new QLabel(this);
-
-    // Center the QR code within the QLabel
     svgLabel->setAlignment(Qt::AlignCenter);
 
     // Set up the layout to add the QLabel to the main window
     QVBoxLayout *layout = new QVBoxLayout;
-
-    // Set the alignment for the layout to center the QLabel
     layout->setAlignment(Qt::AlignCenter);
     layout->addWidget(svgLabel);
 
@@ -80,16 +78,11 @@ kuvatesti::kuvatesti(QWidget *parent)
     setCentralWidget(centralWidget);
 
     frameCounter = 1;
-    QTimer::singleShot(5000, [this]() {
-        // Start the QR code update logic after 5 seconds
-        timer = new QTimer(this);
-        connect(timer, &QTimer::timeout, this, &kuvatesti::updateQRCode);
 
-        int intervalMs = static_cast<int>(interval);  // Integer part of the interval
-        qDebug() << "Interval (float):" << interval;
-        timer->start(16);
-    });
-
+    // Start the QR code update logic immediately or after a delay
+    timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, &kuvatesti::updateQRCode);
+    timer->start(16); // Adjust the interval as needed
 }
 
 void kuvatesti::updateQRCode() {
@@ -100,45 +93,58 @@ void kuvatesti::updateQRCode() {
     // Append the timestamp and frame number to the text to encode
     QString textToEncode = "QR Code: " + timestamp + QString::number(frameCounter);
 
-    // Encode the text (with the timestamp and frame number) into the QR code
+    // Encode the text into the QR code
     const QrCode::Ecc errCorLvl = QrCode::Ecc::LOW;
     const QrCode qr = QrCode::encodeText(textToEncode.toUtf8().constData(), errCorLvl);
 
-    // Convert the QR code into an SVG string
-    QString svgData = toSvgString(qr, 4);
+    // Render the QR code directly onto a QImage
+    int qrSize = qr.getSize();
+    int scale = 10;
+    int border = 4;
+    int imageSize = (qrSize + border * 2) * scale;
 
-    // Convert the SVG string to QByteArray
-    QByteArray byteArray = svgData.toUtf8();
+    QImage image(imageSize, imageSize, QImage::Format_RGB32);
+    image.fill(Qt::white);
 
-    // Pass the actual QByteArray to QSvgRenderer
-    QSvgRenderer svgRenderer(byteArray);
+    QPainter painter(&image);
+    painter.setBrush(Qt::black);
+    painter.setPen(Qt::NoPen);
 
-    // Create a QPixmap to render the SVG into (set size if necessary)
-    QPixmap pixmap(600, 600);
-    pixmap.fill(Qt::transparent);  // Ensure the background is transparent
+    // Draw the QR code onto the image
+    for (int y = -border; y < qrSize + border; y++) {
+        for (int x = -border; x < qrSize + border; x++) {
+            if (qr.getModule(x, y)) {
+                QRect rect((x + border) * scale, (y + border) * scale, scale, scale);
+                painter.drawRect(rect);
+            }
+        }
+    }
+    painter.end();
 
-    // Create a QPainter to paint on the QPixmap
-    QPainter painter(&pixmap);
+    // Display the QR code image
+    svgLabel->setPixmap(QPixmap::fromImage(image));
 
-    // Render the SVG onto the pixmap
-    svgRenderer.render(&painter);
+    // Store frame data in the buffer
+    QJsonObject frameObject;
+    frameObject["qr_data"] = textToEncode;
+    frameObject["timestamp"] = timestamp;
+    frameObject["frame_number"] = frameCounter;
+    frameBuffer.append(frameObject);
 
-    // Set the pixmap to the QLabel to display
-    svgLabel->setPixmap(pixmap);
-
-    // Save the QR code data to the JSON file
-    saveQRCodeDataToJson(textToEncode, timestamp, frameCounter);
+    // Write to file when buffer reaches a certain size
+    if (frameBuffer.size() >= bufferSize) {
+        saveBufferedDataToJson();
+    }
 
     // Increment the frame counter for the next frame
     frameCounter++;
 }
 
-void kuvatesti::saveQRCodeDataToJson(const QString &qrData, const QString &timestamp, int frameNumber) {
-    // Set the path for the JSON file (for example, in the user's Documents folder)
+void kuvatesti::saveBufferedDataToJson() {
+    // Set the path for the JSON file
     QString documentsFolder = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     QString filePath = documentsFolder + "/qr_data.json";
 
-    // Open the file for reading the current JSON data
     QFile file(filePath);
     QJsonDocument jsonDoc;
     QJsonArray framesArray;
@@ -151,20 +157,21 @@ void kuvatesti::saveQRCodeDataToJson(const QString &qrData, const QString &times
             file.close();
         }
 
-        if (!jsonDoc.isNull() && jsonDoc.isArray()) {
-            // Get the existing array of frames
-            framesArray = jsonDoc.array();
+        if (!jsonDoc.isNull()) {
+            if (jsonDoc.isArray()) {
+                // Get the existing array of frames
+                framesArray = jsonDoc.array();
+            } else if (jsonDoc.isObject()) {
+                // If the existing JSON is an object, convert it to an array
+                framesArray.append(jsonDoc.object());
+            }
         }
     }
 
-    // Create a JSON object to store the QR code data, timestamp, and frame number
-    QJsonObject frameObject;
-    frameObject["qr_data"] = qrData;
-    frameObject["timestamp"] = timestamp;
-    frameObject["frame_number"] = frameNumber;
-
-    // Append the new frame data to the array
-    framesArray.append(frameObject);
+    // Append buffered frames to the array
+    for (const QJsonObject &frameObject : frameBuffer) {
+        framesArray.append(frameObject);
+    }
 
     // Create a JSON document from the updated array
     jsonDoc = QJsonDocument(framesArray);
@@ -172,14 +179,19 @@ void kuvatesti::saveQRCodeDataToJson(const QString &qrData, const QString &times
     // Open the file for writing (overwrite with new data)
     if (file.open(QIODevice::WriteOnly)) {
         // Write the updated JSON document to the file
-        file.write(jsonDoc.toJson());
+        file.write(jsonDoc.toJson(QJsonDocument::Indented));
         file.close();
-    } else {
-        qDebug() << "Failed to open file for writing: " << filePath;
     }
+
+    // Clear the buffer after saving
+    frameBuffer.clear();
 }
 
 kuvatesti::~kuvatesti()
 {
+    // Save any remaining buffered data before exiting
+    if (!frameBuffer.isEmpty()) {
+        saveBufferedDataToJson();
+    }
     delete ui;
 }

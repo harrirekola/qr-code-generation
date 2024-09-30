@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QTimer>
+#include <QList>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -22,20 +23,18 @@ public:
     ~kuvatesti();
 
 private slots:
-    // Slot to update the QR code 60 times per second
     void updateQRCode();
-
-private:
-    // Function to save QR code data to a JSON file
-    void saveQRCodeDataToJson(const QString &qrData, const QString &timestamp, int frameNumber);
+    void saveBufferedDataToJson();
 
 private:
     Ui::kuvatesti *ui;
 
-    QLabel *svgLabel;   // QLabel to display the QR code
-    QTimer *timer;      // Timer to trigger updates 60 times per second
-    int frameCounter;   // Declare the frame counter here
+    QLabel *svgLabel;
+    QTimer *timer;
+    int frameCounter;
     double interval;
+    QList<QJsonObject> frameBuffer;
+    const int bufferSize = 100;
 };
 
 #endif // KUVATESTI_H
