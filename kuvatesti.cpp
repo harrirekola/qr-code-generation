@@ -22,7 +22,6 @@
 #include <QJsonArray>
 #include <QList>
 #include <QImage>
-#include <QPainter>
 
 using std::uint8_t;
 using qrcodegen::QrCode;
@@ -82,24 +81,24 @@ kuvatesti::kuvatesti(QWidget *parent)
     // Start the QR code update logic immediately or after a delay
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &kuvatesti::updateQRCode);
-    timer->start(16); // Adjust the interval as needed
+    timer->start(33);
 }
 
 void kuvatesti::updateQRCode() {
     // Get the current timestamp
     QDateTime currentTime = QDateTime::currentDateTime();
-    QString timestamp = currentTime.toString("yyyy-MM-dd HH:mm:ss.zzz");
+    QString timestamp = currentTime.toString("yyyy-MM-dd HH:mm:ss.zzzzz");
 
     // Append the timestamp and frame number to the text to encode
-    QString textToEncode = "QR Code: " + timestamp + QString::number(frameCounter);
+    QString textToEncode = "QR Code: " + timestamp + " - Frame: " + QString::number(frameCounter);
 
     // Encode the text into the QR code
-    const QrCode::Ecc errCorLvl = QrCode::Ecc::LOW;
+    const QrCode::Ecc errCorLvl = QrCode::Ecc::HIGH;
     const QrCode qr = QrCode::encodeText(textToEncode.toUtf8().constData(), errCorLvl);
 
     // Render the QR code directly onto a QImage
     int qrSize = qr.getSize();
-    int scale = 10;
+    int scale = 20;
     int border = 4;
     int imageSize = (qrSize + border * 2) * scale;
 
@@ -126,7 +125,6 @@ void kuvatesti::updateQRCode() {
 
     // Store frame data in the buffer
     QJsonObject frameObject;
-    frameObject["qr_data"] = textToEncode;
     frameObject["timestamp"] = timestamp;
     frameObject["frame_number"] = frameCounter;
     frameBuffer.append(frameObject);

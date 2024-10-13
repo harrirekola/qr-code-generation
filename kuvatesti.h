@@ -31,6 +31,7 @@ private:
 
     QLabel *svgLabel;
     QTimer *timer;
+    QTimer *simulatedLoading;
     int frameCounter;
     double interval;
     QList<QJsonObject> frameBuffer;
